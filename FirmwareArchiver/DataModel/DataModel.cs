@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace FirmwareArchiver.DataModel
 {
@@ -33,8 +34,6 @@ namespace FirmwareArchiver.DataModel
         }
 
     }
-
-
 
     public partial class FirmwareList
     {
@@ -91,6 +90,24 @@ namespace FirmwareArchiver.DataModel
 
         [JsonProperty("signed")]
         public bool Signed { get; set; }
+    }
+
+    public partial class ConnectedDevice
+    {
+        public string DeviceName { get; set; }
+
+        public string ProductType { get; set; }
+
+        public string UniqueChipID { get; set; }
+
+        public string InternationalMobileEquipmentIdentity { get; set; }
+
+        public string SerialNumber { get; set; }
+
+        public string HardwareModel { get; set; }
+
+        public string UniqueDeviceID { get; set; }
+
     }
 }
 

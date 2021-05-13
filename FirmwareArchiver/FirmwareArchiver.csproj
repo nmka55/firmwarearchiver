@@ -3,14 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Colorful.Console" Version="1.2.15" />
-    <PackageReference Include="Flurl.Http" Version="3.0.1" />
+    <PackageReference Include="Flurl.Http" Version="3.2.0" />
     <PackageReference Include="ConsoleTables" Version="2.4.2" />
     <PackageReference Include="ByteSize" Version="2.0.0" />
-    <PackageReference Include="ShellProgressBar" Version="5.0.0" />
+    <PackageReference Include="ShellProgressBar" Version="5.1.0" />
+    <PackageReference Include="iMobileDevice-net" Version="1.3.17" />
   </ItemGroup>
 
 </Project>

@@ -12,18 +12,17 @@ using System.Linq;
 using ShellProgressBar;
 using System.Threading;
 using System.IO;
-using System.Security.Cryptography;
 
-namespace FirmwareArchiver.Services
+namespace FirmwareArchiver.Service
 {
-    public static class ServiceHelper
+    public static class MyService
     {
         public static bool TestConnection()
         {
-            MyConsole.Info("Before we get started let me check your internet connection...");
+            MyConsole.Info("Checking your internet connection...");
 
-            List<string> listOfIPs = new List<string> { "appldnld.apple.com", "api.ipsw.me" };
-            Ping pingSender = new Ping();
+            List<string> listOfIPs = new() { "appldnld.apple.com", "api.ipsw.me" };
+            Ping pingSender = new();
             PingReply pingReply;
             bool pingResult = true;
 
@@ -41,82 +40,67 @@ namespace FirmwareArchiver.Services
             }
             pingSender.Dispose();
 
-            if (pingResult)
-            {
-                MyConsole.Success($"Your computer is CONNECTED to the internet :)\n");
-            }
-
-            else
+            if (!pingResult)
             {
                 MyConsole.Fail($"I'm sorry, looks like you're NOT CONNECTED to the internet or the servers went DOWN. Please try again. :( \nExiting...");
                 Environment.Exit(0);
             }
 
+            MyConsole.Success($"Your computer is CONNECTED to the internet :)\n");
             return pingResult;
+
+
 
         }
 
         public static async Task<DeviceList[]> GetDeviceListJSONAsync()
         {
-            MyConsole.Info("Downloading device list from IPSW.me...");
-            MyConsole.Info("https://api.ipsw.me/v4/devices");
+            var url = "https://api.ipsw.me/v4/devices";
 
-            DeviceList[] deviceList = await "https://api.ipsw.me/v4/devices".WithTimeout(20).GetJsonAsync<DeviceList[]>();
+            MyConsole.Info($"Downloading device list from IPSW.me: {url}");
 
-            if (deviceList != null && deviceList.Length > 0)
-            {
-                Array.Sort(deviceList, new DeviceList.DeviceComparer());
-                MyConsole.Success("Downloading DONE\n");
-            }
+            DeviceList[] deviceList = await url.WithTimeout(15).GetJsonAsync<DeviceList[]>();
 
-            else
+            if (deviceList == null || deviceList.Length <= 0)
             {
                 MyConsole.Fail("Error download device list. Exiting...\n");
                 Environment.Exit(0);
             }
 
+            Array.Sort(deviceList, new DeviceList.DeviceComparer());
+            MyConsole.Success("Downloading device list DONE\n");
             return deviceList;
         }
 
         public static async Task<FirmwareList> GetFirmwareListJSONAsync(string identifier)
         {
-            MyConsole.Info($"Downloading firmware list for {identifier}");
-            MyConsole.Info("https://api.ipsw.me/v4/device"
+            var url = "https://api.ipsw.me/v4/device"
                                                 .AppendPathSegment(identifier)
                                                 .SetQueryParams(new
                                                 {
                                                     type = "ipsw"
 
-                                                }));
+                                                });
 
-            FirmwareList firmwareList = await "https://api.ipsw.me/v4/device"
-                                                .AppendPathSegment(identifier)
-                                                .SetQueryParams(new
-                                                {
-                                                    type = "ipsw"
+            MyConsole.Info($"Downloading firmware list for {identifier}: {url}");
 
-                                                })
-                                                .WithTimeout(20)
+            FirmwareList firmwareList = await url
+                                                .WithTimeout(15)
                                                 .GetJsonAsync<FirmwareList>();
-            if (firmwareList != null && firmwareList.Firmwares.Length > 0)
-            {
-                MyConsole.Success("Downloading DONE\n");
-            }
 
-            else
+            if (firmwareList == null || firmwareList.Firmwares.Length <= 0)
             {
                 MyConsole.Fail("Error download firmware list. Exiting...\n");
                 Environment.Exit(0);
             }
 
-
-
+            MyConsole.Success("Downloading firmware list DONE\n");
             return firmwareList;
         }
 
         public static async Task DownloadIPSW(Firmware[] firmwares, string downloadPath)
         {
-            MyConsole.Info($"Download has started! \n");
+            MyConsole.Info($"IPSW Download has started! \n");
 
             var options = new ProgressBarOptions
             {
@@ -142,7 +126,7 @@ namespace FirmwareArchiver.Services
                 if (File.Exists($"{downloadPath}/{fileName}"))
                 {
                     MyConsole.Info("Duplicate file found in directory. Checking MD5Sum for file's integrity...");
-                    bool isCorrectFile = CompareByMD5($"{downloadPath}/{fileName}", firmware.Md5Sum);
+                    bool isCorrectFile = MyFileHandler.CompareByMD5($"{downloadPath}/{fileName}", firmware.Md5Sum);
                     if (isCorrectFile)
                     {
                         MyConsole.Success($"MD5Sum check completed. File {downloadPath}/{fileName} is CORRECT. Moving on to the next file.");
@@ -194,25 +178,6 @@ namespace FirmwareArchiver.Services
                 Console.WriteLine(e.Error.ToString());
             }
 
-
         }
-
-        private static bool CompareByMD5(string file, string md5sum)
-        {
-            // Using the. NET built-in MD5 Library
-            using var md5 = MD5.Create();
-            byte[] one;
-            using (var fs1 = File.Open(file, FileMode.Open))
-            {
-                // Read the file content with FileStream and calculate the HASH value
-                one = md5.ComputeHash(fs1);
-            }
-            // Converting MD5 results (byte arrays) into strings for comparison
-            var computedMD5 = BitConverter.ToString(one).Replace("-", "").ToLower();
-            MyConsole.Info($"Calculated hash: {computedMD5}, hash from IPSW.me server {md5sum}");
-            return computedMD5.Equals(md5sum);
-        }
-
-
     }
 }

@@ -5,47 +5,49 @@ using FirmwareArchiver.DataModel;
 using System.Drawing;
 using System.Reflection;
 using FirmwareArchiver.CustomComponents;
-using FirmwareArchiver.Services;
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
+using iMobileDevice;
+using FirmwareArchiver.Service;
 
 namespace FirmwareArchiver
 {
     class Program
     {
         static DeviceList[] deviceList;
-        static string downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        static string pathSuffix = "_FIRMWARES";
 
-        static async Task Main(string[] args)
+
+        static async Task Main()
         {
             try
             {
+
+
                 MyConsole.ASCII("FIRMWARE ARCHIVER", Color.DeepSkyBlue);
-                MyConsole.Gradient($"Download all IPSWs (no OTA updates) for a device automatically. You don't have to start the download one by one." +
+                MyConsole.Gradient($"Download all Restore IPSWs for a selected device automatically. " +
+                    //$"Save SHSH2 Blobs of USB connected devices." +
                     $"Made by @nmka55. " +
                     $"Version { Assembly.GetExecutingAssembly().GetName().Version}. \n \n");
 
-                if (ServiceHelper.TestConnection())
-                    deviceList = await ServiceHelper.GetDeviceListJSONAsync();
+                NativeLibraries.Load();
+                if (MyService.TestConnection())
+                    deviceList = await MyService.GetDeviceListJSONAsync();
 
-                await DeviceSelection();
+                ConnectedDevice connectedDevice = MyDeviceHandler.CheckConnectedDevice();
+                if (connectedDevice != null) await FirmwareSelection(connectedDevice.ProductType);
+                else await DeviceSelection();
 
             }
             catch (Exception ex)
             {
-                MyConsole.Exception(ex.Message ?? "Oops... Something went wrong and my program has crashed or something. I'm sorry. Please try again. :)");
+                MyConsole.Exception(ex.Message ?? "Oops... Something went wrong and program has crashed. I'm sorry. Please try again. :)");
             }
         }
 
         static async Task DeviceSelection()
         {
-            MyConsole.UserInteraction("Please select the device. Enter index of the device from the list.");
             var index = 0;
 
-            List<string[]> tempList = new List<string[]>();
-
+            List<string[]> tempList = new();
             foreach (var device in deviceList)
             {
                 tempList.Add(
@@ -60,6 +62,7 @@ namespace FirmwareArchiver
 
             MyConsole.Table(new string[] { "Index", "Identifier", "Name", "BoardConfig", "Platform", "CPID", "BDID" }, tempList);
 
+            MyConsole.UserInteraction("Please select the device. Enter index of the device from the list.");
 
             string input = Console.ReadLine();
             if (int.TryParse(input, out int inputValue) && inputValue >= 0 && inputValue <= index)
@@ -69,13 +72,12 @@ namespace FirmwareArchiver
             else
             {
                 MyConsole.Fail("Invalid index. Please check your device index and try again.\n");
-                //await DeviceSelection();
             }
         }
 
         static async Task FirmwareSelection(string identifier)
         {
-            FirmwareList firmwareList = await ServiceHelper.GetFirmwareListJSONAsync(identifier);
+            FirmwareList firmwareList = await MyService.GetFirmwareListJSONAsync(identifier);
 
             MyConsole.Info("Device Info:");
             MyConsole.Info($"Name: {firmwareList.Name}");
@@ -86,8 +88,7 @@ namespace FirmwareArchiver
             MyConsole.Info($"BDID: {firmwareList.Bdid}");
             MyConsole.Info($"Available IPSWs for this device:");
 
-            List<string[]> tempList = new List<string[]>();
-
+            List<string[]> tempList = new();
             foreach (var firmware in firmwareList.Firmwares)
             {
                 tempList.Add(
@@ -102,81 +103,20 @@ namespace FirmwareArchiver
 
             MyConsole.Table(new string[] { "Version", "BuildID", "Size", "Signed", "Release Date", "MD5Sum", "SHA1Sum" }, tempList);
 
-            downloadPath = Directory.CreateDirectory($"{downloadPath}/__FIRMWARES/{identifier}").ToString();
-            pathSuffix = $"/__FIRMWARES/{identifier}";
 
-            ChangePath();
+            string downloadPath = MyFileHandler.ChangePath(firmwareList.Name.Split(" ")[0] ?? "iDevice");
 
-            bool enoughStorage = StorageChecker(firmwareList.Firmwares);
+            bool enoughStorage = MyFileHandler.StorageChecker(firmwareList.Firmwares);
             if (enoughStorage)
             {
-                await ServiceHelper.DownloadIPSW(firmwareList.Firmwares, downloadPath);
+                await MyService.DownloadIPSW(firmwareList.Firmwares, downloadPath);
                 MyConsole.Success("FINISHED DOWNLOADING IPSWs. Good luck :)");
                 Environment.Exit(0);
             }
         }
 
-        static bool StorageChecker(Firmware[] firmwares)
-        {
-            long IPSWsize = firmwares.Select(item => item.Filesize).Sum();
-            bool result = false;
-
-            MyConsole.Info($"Download location: {downloadPath}");
-
-            MyConsole.Info($"Checking disk free space...");
-
-            if (!string.IsNullOrEmpty(Path.GetPathRoot(downloadPath)))
-            {
-                DriveInfo driveInfo = new DriveInfo(Path.GetPathRoot(downloadPath));
-                long freeSpace = driveInfo.AvailableFreeSpace;
-
-                MyConsole.Info($"This download will take {ByteSizeLib.ByteSize.FromBytes(IPSWsize).ToString("#.#")} and you have " +
-                    $"{ByteSizeLib.ByteSize.FromBytes(freeSpace).ToString("#.#")} of free space");
-
-                if (IPSWsize > freeSpace)
-                {
-                    MyConsole.Fail($"I'm sorry, you DO NOT HAVE ENOUGH free space. Exiting...");
-                    result = false;
-                    Environment.Exit(0);
-                }
-                else
-                {
-                    MyConsole.Success("There is ENOUGH free space! :)");
-                    result = true;
-                }
-
-            }
-            else
-            {
-                MyConsole.UserInteraction($"Couldn't get the disk free space information. Do you still want to continue? (If disk gets full downloads will FAIL.)");
-                if (Console.ReadKey().Key == ConsoleKey.Enter) result = true;
-            }
-
-            return result;
-        }
 
 
-        static void ChangePath()
-        {
-            MyConsole.Info($"Current download folder is {downloadPath}. If you want to change the directory, enter the path below(e.g D:\\Data or /Volumes/myDrive). If not, press ENTER");
-
-            var path = Console.ReadLine();
-            if (!string.IsNullOrEmpty(path))
-            {
-                if (Directory.CreateDirectory(path + pathSuffix).Exists)
-                {
-                    downloadPath = path + pathSuffix;
-                }
-                else
-                {
-                    MyConsole.UserInteraction($"Entered path '{path}' does NOT EXISTS. Try again...");
-                    ChangePath();
-                }
-            }
-
-            MyConsole.Info($"Download folder set to: {downloadPath}");
-
-        }
 
 
     }

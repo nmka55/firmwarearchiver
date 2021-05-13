@@ -1,0 +1,35 @@
+﻿<Properties StartupConfiguration="{B8AFCC7F-D788-42C4-8FC6-B2AE19707307}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="FirmwareArchiver/Program.cs">
+    <Files>
+      <File FileName="FirmwareArchiver/Program.cs" Line="30" Column="1" />
+      <File FileName="FirmwareArchiver/Services/ServiceHelper.cs" Line="69" Column="1" />
+      <File FileName="FirmwareArchiver/Service/MyFileHandler.cs" Line="18" Column="42" />
+      <File FileName="FirmwareArchiver/Service/MyDeviceHandler.cs" Line="92" Column="34" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="FirmwareArchiver" expanded="True">
+            <Node name="FirmwareArchiver" expanded="True">
+              <Node name="CustomComponent" expanded="True" />
+              <Node name="DataModel" expanded="True" />
+              <Node name="Service" expanded="True" />
+              <Node name="Program.cs" selected="True" />
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+      <Pad Id="MonoDevelop.Debugger.WatchPad">
+        <State />
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.ItemProperties.FirmwareArchiver PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <Debugger.DebugSourceFolders />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
